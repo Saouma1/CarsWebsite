@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome Page</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <div class="user-info">
+                <h2 id="userName">User Name</h2> <!-- Placeholder for the user's name -->
+            </div>
+            <button id="createFormBtn">Create a Form</button>
+            <button id="logoutBtn">Logout</button>
+        </aside>
+        <main class="content">
+            <h1>Welcome to Your Dashboard</h1>
+            <table id="carsTable">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Last Name</th>
+                        <th>Lot Number</th>
+                        <th>Car Brand</th>
+                        <th>Actions</th> <!-- Column for edit/delete actions -->
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Car rows will be added here -->
+                </tbody>
+            </table>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
