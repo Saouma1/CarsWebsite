@@ -1,18 +1,30 @@
 const express = require('express');
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const mongoose = require('mongoose');
 const app = express();
+require('dotenv').config();
 
 app.use(express.json()); // Middleware to parse JSON bodies
 app.use(express.static('public'));
-
+const dbURI = 'mongodb+srv://jfsawma:Df7oDymQJ1GfGw27@farhat.muf740n.mongodb.net/';
+app.use(session({
+  secret: 'your_secret_key', // Ensure you have a strong secret for production
+  resave: false, // Do not save session if unmodified
+  saveUninitialized: false, // Do not create session until something stored
+  store: MongoStore.create({ mongoUrl: dbURI }),
+  cookie: { maxAge: 1000 * 60 * 60 * 24 } // Example: 24-hour cookie life
+}));
 
 // MongoDB connection string
-const dbURI = 'mongodb+srv://jfsawma:Df7oDymQJ1GfGw27@farhat.muf740n.mongodb.net/';
+
 
 mongoose.connect(dbURI)
   .then(() => console.log('MongoDB connected'))
   .catch((err) => console.error(err));
   
+ 
+
   app.get('/', (req, res) => {
     res.sendFile(__dirname + '/public/signin.html');
 });
@@ -43,28 +55,30 @@ app.post('/signup', async (req, res) => {
 
 // Sign-in route
 app.post('/signin', async (req, res) => {
-    const { email, password } = req.body;
-    try {
-      const user = await User.findOne({ email: email });
-      if (user && user.password === password) {
-        // Passwords match (use bcrypt in production)
-        res.status(200).json({ message: "Authenticated successfully", redirectURL: "/welcome.html" });
-      } else {
-        // Authentication failed
-        res.status(401).send('Authentication failed');
-      }
-    } catch (error) {
-      console.error(error);
-      res.status(500).send('Error during sign in');
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email: email });
+    if (user && user.password === password) { // Replace with bcrypt in production
+      // Set user ID in session
+      req.session.userId = user._id;
+      res.status(200).json({ message: "Authenticated successfully", redirectURL: "/welcome.html" });
+    } else {
+      // Authentication failed
+      res.status(401).send('Authentication failed');
     }
-  });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error during sign in');
+  }
+});
   
 // Car Schema
 const carSchema = new mongoose.Schema({
   name: String,
   lastName: String,
   lotNumber: String,
-  carBrand: String
+  carBrand: String,
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' } 
 });
 
 // Car model
@@ -73,22 +87,42 @@ const Car = mongoose.model('Car', carSchema);
 // Cars route
 app.post('/cars', async (req, res) => {
   try {
-      const car = new Car(req.body);
-      await car.save();
-      res.status(201).json(car); // Make sure to send JSON back
+    // Assuming `req.session.userId` is set through some form of middleware after authentication
+    const userId = req.session.userId; // This should be set correctly
+    if (!userId) {
+      // If userId is not set, throw an error or return a response
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    const carData = { ...req.body, user: userId };
+    const car = new Car(carData);
+    await car.save();
+    res.status(201).json(car);
   } catch (error) {
-      res.status(500).json({ message: 'Error saving car data', error: error });
+    console.error('Error saving car data:', error);
+    // Send back a descriptive error message
+    res.status(500).json({ message: 'Error saving car data', error: error.message });
   }
 });
 
-app.get('/cars-data', async (req, res) => {
+const isAuthenticated = (req, res, next) => {
+  if (req.session.userId) {
+    return next();
+  }
+  // Redirect to login page or send an error
+  res.status(401).send('You are not authenticated');
+};
+
+app.get('/cars-data', isAuthenticated, async (req, res) => {
   try {
-    const cars = await Car.find();
+    const userId = req.session.userId; // Retrieve user ID from session
+    const cars = await Car.find({ user: userId }); // Fetch cars for the logged-in user
     res.status(200).json(cars);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching cars', error: error });
   }
 });
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
@@ -105,6 +139,21 @@ app.delete('/cars/:id', async (req, res) => {
   } catch (error) {
       res.status(500).json({ success: false, message: 'Error deleting car', error: error });
   }
+});
+
+app.get('/logout', (req, res) => {
+  req.session.destroy(err => {
+    if (err) {
+      return res.status(500).send('Could not log out');
+    }
+    // Redirect to login page or send a success message
+    res.redirect('/signin.html');
+  });
+});
+
+// Use this middleware on routes that require authentication
+app.get('/cars-data', isAuthenticated, async (req, res) => {
+  // Your existing logic
 });
 
 app.get('/cars/:id', async (req, res) => {
