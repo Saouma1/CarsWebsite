@@ -175,19 +175,59 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     };
     
-    // Check for Edit Car Form and Prefill if Necessary
-    const urlParams = new URLSearchParams(window.location.search);
-    const carId = urlParams.get('id'); // Extract car ID from URL
-    if (carId && document.getElementById('editCarsForm')) {
-        fetch(`/cars/${carId}`)
-            .then(response => response.json())
-            .then(car => {
-                // Prefill the form with car details for editing
-                document.getElementById('name').value = car.name;
-                document.getElementById('lastName').value = car.lastName;
-                document.getElementById('lotNumber').value = car.lotNumber;
-                document.getElementById('carBrand').value = car.carBrand;
-            })
-            .catch(error => console.error('Error:', error));
+    const editCarsForm = document.getElementById('editCarsForm');
+    if (editCarsForm) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const carId = urlParams.get('id'); // Extract car ID from URL
+        
+        if (carId) {
+            editCarsForm.addEventListener('submit', function(event) {
+                event.preventDefault(); // Prevent the form from submitting the traditional way
+                
+                // Collect form data
+                const carData = {
+                    name: document.getElementById('name').value,
+                    lastName: document.getElementById('lastName').value,
+                    lotNumber: document.getElementById('lotNumber').value,
+                    carBrand: document.getElementById('carBrand').value,
+                };
+
+                // Send a PUT request to the backend
+                fetch(`/cars/${carId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(carData),
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok.');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Car updated:', data);
+                    window.location.href = './welcome.html'; // Redirect back to welcome page
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+            });
+
+            // Prefill the form with car details for editing
+            fetch(`/cars/${carId}`)
+                .then(response => response.json())
+                .then(car => {
+                    document.getElementById('name').value = car.name;
+                    document.getElementById('lastName').value = car.lastName;
+                    document.getElementById('lotNumber').value = car.lotNumber;
+                    document.getElementById('carBrand').value = car.carBrand;
+                })
+                .catch(error => console.error('Error:', error));
+        } else {
+            console.error('Car ID is missing from the URL.');
+        }
     }
 });
+

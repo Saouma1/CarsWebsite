@@ -171,13 +171,17 @@ app.get('/cars/:id', async (req, res) => {
 });
 app.put('/cars/:id', async (req, res) => {
   try {
-      const updatedCar = await Car.findByIdAndUpdate(req.params.id, req.body, { new: true });
-      if (updatedCar) {
-          res.status(200).json(updatedCar);
-      } else {
-          res.status(404).json({ message: 'Car not found' });
+      const carId = req.params.id;
+      const updates = req.body;
+      
+      // Update the car with the new data
+      const car = await Car.findByIdAndUpdate(carId, updates, { new: true });
+      if (!car) {
+          return res.status(404).json({ message: 'Car not found' });
       }
+      res.json(car);
   } catch (error) {
-      res.status(500).json({ message: 'Error updating car', error: error });
+      console.error(error);
+      res.status(500).json({ message: 'Error updating car', error: error.message });
   }
 });
