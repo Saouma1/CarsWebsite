@@ -30,12 +30,15 @@ mongoose.connect(dbURI)
 });
 
 
-  
 // User Schema
 const userSchema = new mongoose.Schema({
   name: String,
-  email: String,
-  password: String // Note: In production, ensure you hash passwords before storing them!
+  email: { 
+    type: String, 
+    unique: true, // Enforces uniqueness on the email field
+    required: true
+  },
+  password: String // Note: Ensure to hash passwords before storing them in production
 });
 
 // User model
@@ -45,11 +48,17 @@ const User = mongoose.model('User', userSchema);
 app.post('/signup', async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    const user = new User({ name, email, password });
-    await user.save();
-    res.status(201).send('User created successfully');
+    // Using the Account model for registration
+    const account = new User({ name, email, password });
+    await account.save();
+    res.status(201).send('Account created successfully');
   } catch (error) {
-    res.status(500).send('Error creating user');
+    if (error.code === 11000) { // MongoDB duplicate key error code
+      res.status(400).send('Email already exists');
+    } else {
+      console.error('Signup error:', error);
+      res.status(500).send('Error creating account');
+    }
   }
 });
 
@@ -58,17 +67,40 @@ app.post('/signin', async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await User.findOne({ email: email });
-    if (user && user.password === password) { // Replace with bcrypt in production
-      // Set user ID in session
+    if (user && user.password === password) {
       req.session.userId = user._id;
-      res.status(200).json({ message: "Authenticated successfully", redirectURL: "/welcome.html" });
+      req.session.userName = user.name; // Store the user's name in the session
+      res.status(200).json({ message: "Authenticated successfully", redirectURL: "/welcome" });
     } else {
-      // Authentication failed
       res.status(401).send('Authentication failed');
     }
   } catch (error) {
     console.error(error);
     res.status(500).send('Error during sign in');
+  }
+});
+
+// Create a new route for '/welcome'
+app.get('/welcome', isAuthenticatedd, (req, res) => {
+  if (req.session.userName) {
+    res.sendFile(__dirname + '/public/welcome.html');
+  } else {
+    res.redirect('/signin.html');
+  }
+});
+
+// Middleware to check if the user is authenticated
+function isAuthenticatedd(req, res, next) {
+  if (req.session.userId) {
+    return next();
+  }
+  res.redirect('/signin.html');
+}
+app.get('/getUserName', (req, res) => {
+  if (req.session.userName) {
+    res.json({ userName: req.session.userName });
+  } else {
+    res.status(401).send('Not authenticated');
   }
 });
   

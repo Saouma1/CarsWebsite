@@ -1,4 +1,14 @@
 document.addEventListener('DOMContentLoaded', function() {
+    
+    fetch('/getUserName')
+    .then(response => response.json())
+    .then(data => {
+        const userNameDisplay = document.getElementById('userName');
+        if (userNameDisplay) {
+            userNameDisplay.textContent = data.userName;
+        }
+    })
+    .catch(error => console.error('Error fetching user name:', error));
     // SignUp Form Event Listener
     const signUpForm = document.getElementById('signUpForm');
     if (signUpForm) {
