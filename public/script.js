@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (carsForm) {
         carsForm.addEventListener('submit', function(event) {
             event.preventDefault(); // Prevent the form from submitting the traditional way
-
+    
             // Collect form data
             const carData = {
                 name: document.getElementById('name').value,
@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 lotNumber: document.getElementById('lotNumber').value,
                 carBrand: document.getElementById('carBrand').value,
             };
-
+    
             // Send a POST request to the backend
             fetch('/cars', {
                 method: 'POST',
@@ -117,13 +117,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify(carData),
             })
-            .then(response => response.json())
+            .then(response => {
+                if (response.ok) {
+                    return response.json(); // For a successful request, parse the JSON
+                } else {
+                    // If the response is not ok, handle it as an error
+                    return response.text().then(text => { throw new Error(text); });
+                }
+            })
             .then(data => {
                 console.log('Car saved:', data);
                 window.location.href = './welcome.html'; // Redirect back to welcome page
             })
             .catch((error) => {
                 console.error('Error:', error);
+                const errorContainer = document.getElementById('errorContainer');
+                errorContainer.textContent = error.message; // Use the message from the server
+                errorContainer.style.display = 'block'; // Make sure the container is visible
             });
         });
     }

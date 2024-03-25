@@ -17,8 +17,6 @@ app.use(session({
 }));
 
 // MongoDB connection string
-
-
 mongoose.connect(dbURI)
   .then(() => console.log('MongoDB connected'))
   .catch((err) => console.error(err));
@@ -108,7 +106,7 @@ app.get('/getUserName', (req, res) => {
 const carSchema = new mongoose.Schema({
   name: String,
   lastName: String,
-  lotNumber: String,
+  lotNumber: { type: String, unique: true, required: true },
   carBrand: String,
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' } 
 });
@@ -118,22 +116,31 @@ const Car = mongoose.model('Car', carSchema);
 
 // Cars route
 app.post('/cars', async (req, res) => {
-  try {
-    // Assuming `req.session.userId` is set through some form of middleware after authentication
-    const userId = req.session.userId; // This should be set correctly
-    if (!userId) {
-      // If userId is not set, throw an error or return a response
-      return res.status(403).json({ message: 'Not authorized' });
-    }
+  const { name, lastName, lotNumber, carBrand } = req.body;
+  const userId = req.session.userId; // This should be set correctly
 
-    const carData = { ...req.body, user: userId };
-    const car = new Car(carData);
+  if (!userId) {
+    // If userId is not set, throw an error or return a response
+    return res.status(403).json({ message: 'Not authorized' });
+  }
+
+  try {
+    const car = new Car({
+      name,
+      lastName,
+      lotNumber,
+      carBrand,
+      user: userId // Associate the car with the currently authenticated user
+    });
     await car.save();
-    res.status(201).json(car);
+    res.status(201).json({ message: 'Car added successfully', car });
   } catch (error) {
-    console.error('Error saving car data:', error);
-    // Send back a descriptive error message
-    res.status(500).json({ message: 'Error saving car data', error: error.message });
+    if (error.code === 11000) { // MongoDB duplicate key error for lotNumber
+      res.status(400).send('A car with this lot number already exists.');
+    } else {
+      console.error('Error saving car data:', error);
+      res.status(500).send('Error saving car data');
+    }
   }
 });
 
