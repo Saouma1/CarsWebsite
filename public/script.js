@@ -153,6 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <td>${car.lastName}</td>
                         <td>${car.lotNumber}</td>
                         <td>${car.carBrand}</td>
+                        <td><a href="https://www.copart.com/lot/${car.lotNumber}" target="_blank">View Image</a></td>
                         <td>
                             <button onclick="editCar('${car._id}')">Edit</button>
                             <button onclick="deleteCar('${car._id}', this)">Delete</button>

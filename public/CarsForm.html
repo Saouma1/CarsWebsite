@@ -13,7 +13,7 @@
     <form id="carsForm">
         <input type="text" placeholder="Name" id="name" required>
         <input type="text" placeholder="Last Name" id="lastName" required>
-        <input type="text" placeholder="Lot Number" id="lotNumber" required>
+        <input type="text" placeholder="Lot Number" id="lotNumber" pattern="^\d{8}$" title="Lot Number must be 8 digits" required>
         <input type="text" placeholder="Car Brand" id="carBrand" required>
         <button type="submit">Save</button>
         <div id="errorContainer" style="color: red; display: none;"></div>
