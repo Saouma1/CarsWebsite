@@ -26,7 +26,7 @@ mongoose.connect(process.env.MONGO_URI)
  
 
   app.get('/', (req, res) => {
-    res.sendFile('/signin.html');
+    res.sendFile(__dirname + '/public/main.html');
 });
 
 // User Schema
@@ -232,7 +232,7 @@ app.get('/cars-data', isAuthenticated, async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
