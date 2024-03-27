@@ -26,7 +26,7 @@ mongoose.connect(process.env.MONGO_URI)
  
 
   app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/public/main.html');
+    res.sendFile(__dirname + '/public/signin.html');
 });
 
 // User Schema
