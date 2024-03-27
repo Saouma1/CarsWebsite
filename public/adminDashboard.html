@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="adminStyling.css"> <!-- Update this path as needed -->
+</head>
+<body>
+    <header>
+        <h1>Admin Dashboard</h1>
+        <nav>
+            <a href="/logout">Logout</a>
+        </nav>
+    </header>
+    <main>
+        <section id="usersOverview">
+            <section id="searchSection">
+                <form id="searchForm">
+                  <input type="text" id="searchLotNumber" placeholder="Enter LOT number">
+                  <button type="submit">Search</button>
+                </form>
+              </section>
+            <h2>Users and Their Cars</h2>
+            <table id="usersCarsTable">
+                <thead>
+                    <tr>
+                        <th>User Name</th>
+                        <th>User Email</th>
+                        <th>Car Details</th>
+                        <th>Car Brand</th>
+                        <th>Car Image</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- User and cars data will be inserted here via JavaScript -->
+                </tbody>
+            </table>
+        </section>
+    </main>
+    <script src="adminDashboard.js"></script>
+</body>
+</html>

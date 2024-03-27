@@ -24,19 +24,24 @@ mongoose.connect(dbURI)
  
 
   app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/public/signin.html');
+    res.sendFile(__dirname + '/public/main.html');
 });
-
 
 // User Schema
 const userSchema = new mongoose.Schema({
   name: String,
   email: { 
     type: String, 
-    unique: true, // Enforces uniqueness on the email field
+    unique: true,
     required: true
   },
-  password: String // Note: Ensure to hash passwords before storing them in production
+  password: String, // Hash passwords before storing
+  role: {
+    type: String,
+    default: 'user', // Default role is 'user'. Other role is 'admin'.
+    enum: ['user', 'admin']
+  },
+  cars: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Car' }]
 });
 
 // User model
@@ -68,18 +73,58 @@ app.post('/signin', async (req, res) => {
     if (user && user.password === password) {
       req.session.userId = user._id;
       req.session.userName = user.name; // Store the user's name in the session
-      res.status(200).json({ message: "Authenticated successfully", redirectURL: "/welcome" });
+      req.session.userRole = user.role; // Store the user's role in the session
+
+      if (user.role === 'admin') {
+        // Redirect admin users to the admin dashboard
+        return res.json({ success: true, redirectURL: "/adminDashboard.html" });
+      } else {
+        // Redirect non-admin users to the welcome page
+        return res.json({ success: true, redirectURL: "/welcome" });
+      }
     } else {
-      res.status(401).send('Authentication failed');
+      return res.status(401).send('Authentication failed');
     }
   } catch (error) {
     console.error(error);
-    res.status(500).send('Error during sign in');
+    return res.status(500).send('Error during sign in');
+  }
+});
+
+function isAdmin(req, res, next) {
+  if (req.session.userRole === 'admin') {
+    return next();
+  }
+  return res.status(403).send("Access denied. Admins only.");
+}
+
+app.get('/adminDashboard', isAdmin, async (req, res) => {
+  try {
+    // Use aggregation to fetch users and their associated cars
+    const usersWithCars = await User.aggregate([
+      {
+        $lookup: {
+          from: 'cars', // Ensure this matches the actual collection name in MongoDB
+          localField: '_id', // The field in the User collection
+          foreignField: 'user', // The field in the Car collection that corresponds to the User _id
+          as: 'cars', // The field in the aggregated result that will contain the matched cars
+        },
+      },
+      {
+        $project: { password: 0 }, // Exclude sensitive information like passwords from the result
+      },
+    ]);
+
+    // Since you're sending JSON back, make sure the client-side code can handle this data structure
+    res.json(usersWithCars);
+  } catch (error) {
+    console.error("Error loading admin dashboard:", error);
+    res.status(500).send('Error loading admin dashboard');
   }
 });
 
 // Create a new route for '/welcome'
-app.get('/welcome', isAuthenticatedd, (req, res) => {
+app.get('/welcome', check, (req, res) => {
   if (req.session.userName) {
     res.sendFile(__dirname + '/public/welcome.html');
   } else {
@@ -88,7 +133,7 @@ app.get('/welcome', isAuthenticatedd, (req, res) => {
 });
 
 // Middleware to check if the user is authenticated
-function isAuthenticatedd(req, res, next) {
+function check(req, res, next) {
   if (req.session.userId) {
     return next();
   }
@@ -151,6 +196,17 @@ const isAuthenticated = (req, res, next) => {
   // Redirect to login page or send an error
   res.status(401).send('You are not authenticated');
 };
+
+app.get('/search-cars', isAuthenticated, async (req, res) => {
+  try {
+    const lotNumber = req.query.lotNumber;
+    const cars = await Car.find({ lotNumber: lotNumber }).populate('user');
+    res.json(cars);
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(500).send('Error performing search');
+  }
+});
 
 app.get('/cars-data', isAuthenticated, async (req, res) => {
   try {
@@ -224,3 +280,5 @@ app.put('/cars/:id', async (req, res) => {
       res.status(500).json({ message: 'Error updating car', error: error.message });
   }
 });
+
+

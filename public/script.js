@@ -61,15 +61,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify(formData),
             })
-            .then(response => {
-                if (response.ok) {
-                    return response.json(); // Parse JSON response
-                } else {
-                    throw new Error('Authentication failed');
-                }
-            })
+            .then(response => response.json())
             .then(data => {
-                window.location.href = data.redirectURL; // Redirect the user
+                if (data.success) {
+                    // Redirect based on user role
+                    window.location.href = data.redirectURL;
+                } else {
+                    throw new Error(data.message || 'Authentication failed');
+                }
             })
             .catch((error) => {
                 console.error('Error:', error);
@@ -250,5 +249,14 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Car ID is missing from the URL.');
         }
     }
+    function handleLoginResponse(response) {
+  if (response.success) {
+    // Redirect to the URL provided by the server
+    window.location.href = response.redirectURL;
+  } else {
+    // Handle login failure (show error message, etc.)
+    console.error("Login failed:", response.message);
+  }
+}
 });
 
