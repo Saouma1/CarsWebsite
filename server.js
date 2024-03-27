@@ -2,22 +2,24 @@ const express = require('express');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 const app = express();
 require('dotenv').config();
 
+const saltRounds = 10; // Adjust saltRounds as needed
 app.use(express.json()); // Middleware to parse JSON bodies
 app.use(express.static('public'));
-const dbURI = 'mongodb+srv://jfsawma:Df7oDymQJ1GfGw27@farhat.muf740n.mongodb.net/';
 app.use(session({
-  secret: 'your_secret_key', // Ensure you have a strong secret for production
+  secret: process.env.SESSION_SECRET, // Ensure you have a strong secret for production
   resave: false, // Do not save session if unmodified
   saveUninitialized: false, // Do not create session until something stored
-  store: MongoStore.create({ mongoUrl: dbURI }),
-  cookie: { maxAge: 1000 * 60 * 60 * 24 } // Example: 24-hour cookie life
+  store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
+  
+  cookie: { maxAge: 1000 * 60 * 60 * 24,  httpOnly: true,secure: false} // Example: 24-hour cookie life
 }));
 
 // MongoDB connection string
-mongoose.connect(dbURI)
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
   .catch((err) => console.error(err));
   
@@ -51,8 +53,10 @@ const User = mongoose.model('User', userSchema);
 app.post('/signup', async (req, res) => {
   try {
     const { name, email, password } = req.body;
+    const hashedPassword = await bcrypt.hash(password, saltRounds); // Hash password
+
     // Using the Account model for registration
-    const account = new User({ name, email, password });
+    const account = new User({ name, email, password: hashedPassword }); // Store hashed password
     await account.save();
     res.status(201).send('Account created successfully');
   } catch (error) {
@@ -69,25 +73,32 @@ app.post('/signup', async (req, res) => {
 app.post('/signin', async (req, res) => {
   const { email, password } = req.body;
   try {
-    const user = await User.findOne({ email: email });
-    if (user && user.password === password) {
-      req.session.userId = user._id;
-      req.session.userName = user.name; // Store the user's name in the session
-      req.session.userRole = user.role; // Store the user's role in the session
-
-      if (user.role === 'admin') {
-        // Redirect admin users to the admin dashboard
-        return res.json({ success: true, redirectURL: "/adminDashboard.html" });
+    const user = await User.findOne({ email });
+    if (user) {
+      // Compare submitted password with hashed password in the database
+      const match = await bcrypt.compare(password, user.password);
+      if (match) {
+        // Proceed with session regeneration and setting session properties
+        req.session.regenerate((err) => {
+          if (err) {
+            console.error('Session regeneration error:', err);
+            return res.status(500).send('Internal server error');
+          }
+          req.session.userId = user._id.toString();
+          req.session.userName = user.name;
+          req.session.userRole = user.role;
+          const redirectURL = user.role === 'admin' ? "/adminDashboard.html" : "/welcome";
+          res.json({ success: true, redirectURL });
+        });
       } else {
-        // Redirect non-admin users to the welcome page
-        return res.json({ success: true, redirectURL: "/welcome" });
+        res.status(401).send('Authentication failed');
       }
     } else {
-      return res.status(401).send('Authentication failed');
+      res.status(401).send('Authentication failed');
     }
   } catch (error) {
     console.error(error);
-    return res.status(500).send('Error during sign in');
+    res.status(500).send('Error during sign in');
   }
 });
 
@@ -118,6 +129,7 @@ app.get('/adminDashboard', isAdmin, async (req, res) => {
     // Since you're sending JSON back, make sure the client-side code can handle this data structure
     res.json(usersWithCars);
   } catch (error) {
+    res.sendFile(__dirname + '/main.html');
     console.error("Error loading admin dashboard:", error);
     res.status(500).send('Error loading admin dashboard');
   }
@@ -210,11 +222,13 @@ app.get('/search-cars', isAuthenticated, async (req, res) => {
 
 app.get('/cars-data', isAuthenticated, async (req, res) => {
   try {
-    const userId = req.session.userId; // Retrieve user ID from session
-    const cars = await Car.find({ user: userId }); // Fetch cars for the logged-in user
+    const userId = req.session.userId;
+    // Fetch cars only for the logged-in user
+    const cars = await Car.find({ user: userId });
     res.status(200).json(cars);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching cars', error: error });
+    console.error('Error fetching cars:', error);
+    res.status(500).send('Error fetching cars');
   }
 });
 
@@ -236,13 +250,15 @@ app.delete('/cars/:id', async (req, res) => {
   }
 });
 
+// Logout Route Adjustment
 app.get('/logout', (req, res) => {
-  req.session.destroy(err => {
+  req.session.destroy((err) => {
     if (err) {
-      return res.status(500).send('Could not log out');
+      console.error('Session destruction error:', err);
+      return res.status(500).send('Error during logout');
     }
-    // Redirect to login page or send a success message
-    res.redirect('/signin.html');
+    res.clearCookie('connect.sid', { path: '/' });
+    res.redirect('/main.html');
   });
 });
 
