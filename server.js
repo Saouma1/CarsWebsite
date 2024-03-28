@@ -19,7 +19,7 @@ app.use(session({
 
 const options = {
   tls: true, // Specify to use a TLS connection
-  replicaSet: 'carsWebsiteMongoDb' // Specify the replica set name if your DB is in a replica set configuration
+ // replicaSet: 'carsWebsiteMongoDb' // Specify the replica set name if your DB is in a replica set configuration
 };
 
 // MongoDB connection string
