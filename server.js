@@ -29,6 +29,10 @@ mongoose.connect(process.env.MONGO_URI)
     res.sendFile(__dirname + '/public/main.html');
 });
 
+app.get('/main.html', (req, res) => {
+  res.sendFile(__dirname + '/public/signin.html');
+});
+
 // User Schema
 const userSchema = new mongoose.Schema({
   name: String,
