@@ -18,9 +18,7 @@ app.use(session({
 }));
 
 const options = {
-  useNewUrlParser: true, // For parsing the new MongoDB connection string format
-  useUnifiedTopology: true, // For using the new Server Discover and Monitoring engine
-  tls: true, // For using TLS (necessary if tls=true is set in your connection string)
+  tls: true, // Specify to use a TLS connection
   replicaSet: 'carsWebsiteMongoDb' // Specify the replica set name if your DB is in a replica set configuration
 };
 
