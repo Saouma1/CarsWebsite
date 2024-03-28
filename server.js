@@ -25,7 +25,10 @@ const options = {
 // MongoDB connection string
 mongoose.connect(process.env.MONGO_URI, options)
   .then(() => console.log('MongoDB connected'))
-  .catch((err) => console.error('MongoDB connection error:', err));
+  .catch((err) => {
+    console.error('MongoDB connection error:', err);
+    console.error('Error reason:', err.reason); // This will log the reason for the server selection error
+  });
   
  
 
