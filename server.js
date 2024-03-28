@@ -14,23 +14,27 @@ app.use(session({
   resave: false, // Do not save session if unmodified
   saveUninitialized: false, // Do not create session until something stored
   store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
-  
   cookie: { maxAge: 1000 * 60 * 60 * 24,  httpOnly: true,secure: false} // Example: 24-hour cookie life
 }));
 
+const options = {
+  useNewUrlParser: true, // For parsing the new MongoDB connection string format
+  useUnifiedTopology: true, // For using the new Server Discover and Monitoring engine
+  useCreateIndex: true, // Deprecation of ensureIndex
+  useFindAndModify: false, // For findOneAndUpdate() and findOneAndRemove()
+  tls: true, // For using TLS (necessary if tls=true is set in your connection string)
+  replicaSet: 'carsWebsiteMongoDb' // Specify the replica set name if your DB is in a replica set configuration
+};
+
 // MongoDB connection string
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URI, options)
   .then(() => console.log('MongoDB connected'))
-  .catch((err) => console.error(err));
+  .catch((err) => console.error('MongoDB connection error:', err));
   
  
 
   app.get('/', (req, res) => {
     res.sendFile(__dirname + '/public/main.html');
-});
-
-app.get('/main.html', (req, res) => {
-  res.sendFile(__dirname + '/public/signin.html');
 });
 
 // User Schema
