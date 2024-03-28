@@ -20,8 +20,6 @@ app.use(session({
 const options = {
   useNewUrlParser: true, // For parsing the new MongoDB connection string format
   useUnifiedTopology: true, // For using the new Server Discover and Monitoring engine
-  useCreateIndex: true, // Deprecation of ensureIndex
-  useFindAndModify: false, // For findOneAndUpdate() and findOneAndRemove()
   tls: true, // For using TLS (necessary if tls=true is set in your connection string)
   replicaSet: 'carsWebsiteMongoDb' // Specify the replica set name if your DB is in a replica set configuration
 };
