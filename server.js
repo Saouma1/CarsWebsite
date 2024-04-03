@@ -77,7 +77,7 @@ app.post('/signup', async (req, res) => {
 });
 
 // Sign-in route
-app.post('/signin', async (req, res) => {
+app.post('/signIn', async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await User.findOne({ email });
